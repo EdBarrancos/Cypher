@@ -23,6 +23,9 @@ class Player:
     name: str
     languages: list
 
+    def speaks_language(self, language):
+        return language in self.languages
+
 list_of_clients = [] 
 
 print("Server Up and Running")
@@ -54,10 +57,7 @@ def broadcast(sender_player, language, message):
             continue
 
         try:
-            # TODO: offuscate message if language is unknown
-            player.conn.send(bytes(
-                f"{sender_player.name}:{language}:{message}",
-                'utf-8'))
+            send_message(sender_player, player, language, message)
         except:
             player.conn.close()
             to_remove.append(player)
@@ -65,9 +65,22 @@ def broadcast(sender_player, language, message):
     for p in to_remove:
         remove_player(p)
 
+def send_message(sender, reciver: Player, language, message):
+    if reciver.speaks_language(language):
+        reciver.conn.send(bytes(
+            f"{sender.name}:{language}:{message}",
+            'utf-8'))
+        return
+    reciver.conn.send(bytes(
+        f"{sender.name}:{language}:{randomize_message(message)}",
+        'utf-8'))
+
 def remove_player(player):
     if player in list_of_clients:
         list_of_clients.remove(player) 
+
+def randomize_message(message: str):
+    return "".join(map(lambda a: ' ' if a == ' ' else '?', message))
 
 while True:
     conn, addr = server.accept()
