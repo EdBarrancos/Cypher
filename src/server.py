@@ -26,7 +26,8 @@ class Player:
     def speaks_language(self, language):
         return language in self.languages
 
-list_of_clients = [] 
+list_of_clients = []
+director = None
 
 print("Server Up and Running")
 
@@ -46,18 +47,41 @@ def handle_client(player: Player):
             print(f"< {player.name},{message.split(':')[0]} > " +
                     f"{message.split(':')[1][:-1]}")
             
-            broadcast(player, message.split(':')[0], message.split(':')[1][:-1])
+            broadcast(player.name, message.split(':')[0], message.split(':')[1][:-1])
         except:
             continue
 
-def broadcast(sender_player, language, message):
+def handle_director(conn: socket):
+    print(f"Director Logged in")
+
+    while True:
+        try:
+            message = conn.recv(2048)
+            if not message:
+                return
+            
+            message = message.decode('utf-8')
+            # character:language:message
+            
+            print(f"< DIRECTOR,{message.split(':')[0]},{message.split(':')[1]} > " +
+                    f"{message.split(':')[2][:-1]}")
+            
+            broadcast(message.split(':')[0], message.split(':')[1], message.split(':')[2][:-1])
+        except:
+            continue
+
+
+def broadcast(sender_name, language, message):
+    # TODO: Make this more uniform so it works well on player and dm
     to_remove = []
+    is_director = True
     for player in list_of_clients:
-        if player == sender_player:
+        if player.name == sender_name:
+            is_director = False
             continue
 
         try:
-            send_message(sender_player, player, language, message)
+            send_message(sender_name, player, language, message)
         except:
             player.conn.close()
             to_remove.append(player)
@@ -65,14 +89,22 @@ def broadcast(sender_player, language, message):
     for p in to_remove:
         remove_player(p)
 
-def send_message(sender, reciver: Player, language, message):
+    if not is_director:
+        send_message_director(sender_name, director, language, message)
+
+def send_message_director(sender_name, conn: socket, language, message):
+    conn.send(bytes(
+        f"{sender_name}:{language}:{message}",
+        'utf-8'))
+
+def send_message(sender_name, reciver: Player, language, message):
     if reciver.speaks_language(language):
         reciver.conn.send(bytes(
-            f"{sender.name}:{language}:{message}",
+            f"{sender_name}:{language}:{message}",
             'utf-8'))
         return
     reciver.conn.send(bytes(
-        f"{sender.name}:{language}:{randomize_message(message)}",
+        f"{sender_name}:{language}:{randomize_message(message)}",
         'utf-8'))
 
 def remove_player(player):
@@ -87,6 +119,10 @@ while True:
     print(f"Connected by {addr}")
     # name:lang1,lang2...
     authentication = conn.recv(2048).decode("utf-8")
+    if authentication == "DIRECTOR":
+        director = conn
+        start_new_thread(handle_director, (conn,))
+        continue
     new_player = Player(
         conn, 
         addr, 
