@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from _thread import *
 import configparser
 
-
+from config_handler import Configutations
 
 # TODO: Multicast IP
 # TODO: Ability to narrate
@@ -18,36 +18,22 @@ class Player:
     def speaks_language(self, language):
         return language in self.languages
     
+class ServerConfigurations(Configutations):
+    pass
+    
 class Server:
     def __init__(self) -> None:
         self.list_of_clients = []
         self.director = None
 
-        configs = Server.read_config()
-        IP = configs["ip"]
-        PORT = configs["port"]
+        configs = ServerConfigurations("config/config.ini")
 
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.bind((IP, PORT))
+        self.server.bind((configs.get_server_ip(), configs.get_server_port()))
         self.server.listen(100)
 
         print("Server Up and Running")
-    
-    def read_config():
-        config = configparser.ConfigParser()
- 
-        config.read('config/config.ini')
-    
-        socket_ip = config.getboolean('Socket', 'SERVER_IP')
-        socekt_port = config.get('Socket', 'SERVER_PORT')
-    
-        config_values = {
-            'ip': socket_ip,
-            'port': socekt_port
-        }
-    
-        return config_values
 
     def run(self):
         while True:
