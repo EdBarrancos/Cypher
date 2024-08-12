@@ -1,32 +1,16 @@
-import socket
 import select
 import sys
 
-from config_handler import Configutations
-from network.helpers import get_host, next_free_port
-from network.multicast import send_multicast_message
+from config_handler import Configurations
+from network.helpers import open_tcp_conn_through_multicast
 
 
-class DirectorConfigurations(Configutations):
+class DirectorConfigurations(Configurations):
     pass
 
 
-def open_tcp_conn():
-    host = get_host()
-    port = next_free_port()
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((host, port))
-
-    sock.listen(100)
-
-    send_multicast_message(f'CLI:{host}:{port}')
-    conn, addr = sock.accept()
-    return conn
-
-
 def main():
-    s = open_tcp_conn()
+    s = open_tcp_conn_through_multicast()
 
     s.send(bytes(f"DIRECTOR", "utf-8"))
 
@@ -35,8 +19,7 @@ def main():
     while True:
         sockets_list = [sys.stdin, s]
 
-        read_sockets, write_socket, error_socket = select.select(
-            sockets_list, [], [])
+        read_sockets, _, _ = select.select(sockets_list, [], [])
 
         for sock in read_sockets:
             if sock == s:

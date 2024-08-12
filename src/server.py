@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from _thread import *
 import configparser
 
-from config_handler import Configutations
+from config_handler import Configurations
 from network.multicast import start_multicast_receiver
 
 
@@ -21,7 +21,7 @@ class Player:
         return language in self.languages
 
 
-class ServerConfigurations(Configutations):
+class ServerConfigurations(Configurations):
     pass
 
 
@@ -41,10 +41,11 @@ class Server:
     def run(self):
         for request in start_multicast_receiver():
             conn_req = request.split(":")
-            conn = self.open_client_conn((conn_req[1], int(conn_req[2])))
+            conn = self.open_client_conn((conn_req[0], int(conn_req[1])))
             # name:lang1,lang2...
             authentication = conn.recv(2048).decode("utf-8")
             if authentication == "DIRECTOR":
+                self.director = conn
                 start_new_thread(self.handle_director, (conn,))
                 continue
             new_player = Player(
