@@ -5,7 +5,9 @@ A chat program design to play ttrpgs games that supports characters who speak di
 ## Setup
 
 1 - Get the server up and running `python3 src/server.py`
-2 - [WIP] -> Set the Server's IP and PORT in the client and director's script
+2 - Check the servver IP's address by running the command `ip address show`
+3 - Set the Server's IP and PORT in the client and director's script
+2 - Make sure all computers are in the same network
 3 - Run the clients
     3.1 - Set name and languages spoken by your character
 4 - Run the director
