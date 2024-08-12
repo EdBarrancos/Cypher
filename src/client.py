@@ -3,22 +3,36 @@ import functools
 import select
 import sys
 
-from  config_handler import Configutations
+from config_handler import Configutations
+from network.helpers import get_host, next_free_port
+from network.multicast import send_multicast_message
+
 
 class ClientConfigurations(Configutations):
     pass
 
-from network.service_discovery import find_host_and_connect
-
 
 name = input("Your character name: ")
-languages = input("Which languages do you speak? (Separate with ,): ")\
-                .replace(" ", "").split(',')
+languages = input("Which languages do you speak? (Separate with ,): ") \
+    .replace(" ", "").split(',')
 
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    config = ClientConfigurations("config/config.ini")
-    s.connect((config.get_server_ip(), config.get_server_port()))
+def open_tcp_conn():
+    host = get_host()
+    port = next_free_port()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((host, port))
+
+    sock.listen(100)
+
+    send_multicast_message(f'CLI:{host}:{port}')
+    conn, addr = sock.accept()
+    return conn
+
+
+def main():
+    s = open_tcp_conn()
     s.send(bytes(
         f"{name}:{functools.reduce(lambda a, b: a + ',' + b, languages)}",
         "utf-8"))
@@ -26,11 +40,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     print("lang:message")
 
     while True:
-        sockets_list = [sys.stdin, s] 
+        sockets_list = [sys.stdin, s]
 
-        read_sockets,write_socket, error_socket = select.select(
-            sockets_list,[],[])
-        
+        read_sockets, write_socket, error_socket = select.select(
+            sockets_list, [], [])
+
         for sock in read_sockets:
             if sock == s:
                 message = s.recv(2048).decode('utf-8')
@@ -46,3 +60,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.send(bytes(f"{message}", 'utf-8'))
                 except:
                     continue
+
+
+if __name__ == '__main__':
+    main()
