@@ -1,13 +1,16 @@
 import socket
-import functools
 import select
 import sys
 
-HOST = "127.0.0.1"  # The server's hostname or IP address
-PORT = 65432  # The port used by the server
+from  config_handler import Configutations
+
+class DirectorConfigurations(Configutations):
+    pass
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
+    config = DirectorConfigurations("config/config.ini")
+
+    s.connect((config.get_server_ip(), config.get_server_port()))
     s.send(bytes(
         f"DIRECTOR",
         "utf-8"))
