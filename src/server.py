@@ -4,9 +4,11 @@ from _thread import *
 import configparser
 
 from config_handler import Configutations
+from network.service_discovery import start_receiver_thread
 
 # TODO: Multicast IP
 # TODO: Ability to narrate
+
 
 @dataclass
 class Player:

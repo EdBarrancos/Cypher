@@ -8,10 +8,13 @@ from  config_handler import Configutations
 class ClientConfigurations(Configutations):
     pass
 
+from network.service_discovery import find_host_and_connect
+
 
 name = input("Your character name: ")
 languages = input("Which languages do you speak? (Separate with ,): ")\
                 .replace(" ", "").split(',')
+
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     config = ClientConfigurations("config/config.ini")
