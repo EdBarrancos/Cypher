@@ -1,11 +1,17 @@
 import logging
 import socket
 import struct
+from typing import Callable, Iterator
+
+from .helpers import get_host, next_free_port
 
 logger = logging.Logger("multicast", 0)
 
 
-def start_multicast_receiver(multicast_group='224.3.29.71', server_address=('', 10000), response_builder=lambda: "ACK"):
+def start_multicast_receiver(
+        multicast_group: str = '224.3.29.71',
+        server_address: tuple[str, int] = ('', 10000),
+        response_builder: Callable[[], str] = lambda: "ACK") -> Iterator[str]:
     # Create the socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -26,7 +32,7 @@ def start_multicast_receiver(multicast_group='224.3.29.71', server_address=('', 
         sock.sendto(response_builder().encode('utf-8'), address)
 
 
-def send_multicast_message(message, multicast_group=('224.3.29.71', 10000)):
+def send_multicast_message(message: str, multicast_group: tuple[str, int] = ('224.3.29.71', 10000)) -> None:
     # Create the datagram socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -45,3 +51,17 @@ def send_multicast_message(message, multicast_group=('224.3.29.71', 10000)):
     finally:
         logger.debug('closing socket')
         sock.close()
+
+
+def open_tcp_conn_through_multicast() -> socket:
+    host = get_host()
+    port = next_free_port()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((host, port))
+
+    sock.listen(100)
+
+    send_multicast_message(f'{host}:{port}')
+    conn, _ = sock.accept()
+    return conn

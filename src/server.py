@@ -1,10 +1,9 @@
 import socket
-from dataclasses import dataclass
 from _thread import *
-import configparser
+from dataclasses import dataclass
 
 from config_handler import Configurations
-from network.multicast import start_multicast_receiver
+from network import start_multicast_receiver
 
 
 # TODO: Multicast IP

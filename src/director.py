@@ -2,7 +2,7 @@ import select
 import sys
 
 from config_handler import Configurations
-from network.helpers import open_tcp_conn_through_multicast
+from network import open_tcp_conn_through_multicast
 
 
 class DirectorConfigurations(Configurations):
