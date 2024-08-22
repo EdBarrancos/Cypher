@@ -1,28 +1,26 @@
-import socket
 import select
 import sys
 
-from  config_handler import Configutations
+from config_handler import Configurations
+from network import open_tcp_conn_through_multicast
 
-class DirectorConfigurations(Configutations):
+
+class DirectorConfigurations(Configurations):
     pass
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    config = DirectorConfigurations("config/config.ini")
 
-    s.connect((config.get_server_ip(), config.get_server_port()))
-    s.send(bytes(
-        f"DIRECTOR",
-        "utf-8"))
+def main():
+    s = open_tcp_conn_through_multicast()
+
+    s.send(bytes(f"DIRECTOR", "utf-8"))
 
     print("character_name:lang:message")
 
     while True:
-        sockets_list = [sys.stdin, s] 
+        sockets_list = [sys.stdin, s]
 
-        read_sockets,write_socket, error_socket = select.select(
-            sockets_list,[],[])
-        
+        read_sockets, _, _ = select.select(sockets_list, [], [])
+
         for sock in read_sockets:
             if sock == s:
                 message = s.recv(2048).decode('utf-8')
@@ -36,3 +34,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.send(bytes(f"{message}", 'utf-8'))
                 except:
                     continue
+
+
+if __name__ == "__main__":
+    main()

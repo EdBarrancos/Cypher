@@ -1,79 +1,80 @@
 import socket
-from dataclasses import dataclass
 from _thread import *
-import configparser
+from dataclasses import dataclass
 
-from config_handler import Configutations
+from config_handler import Configurations
+from network import start_multicast_receiver
+
 
 # TODO: Multicast IP
 # TODO: Ability to narrate
 
+
 @dataclass
 class Player:
     conn: socket
-    addr: any
     name: str
     languages: list
 
     def speaks_language(self, language):
         return language in self.languages
-    
-class ServerConfigurations(Configutations):
+
+
+class ServerConfigurations(Configurations):
     pass
-    
+
+
 class Server:
     def __init__(self) -> None:
         self.list_of_clients = []
         self.director = None
 
-        configs = ServerConfigurations("config/config.ini")
-
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.bind((configs.get_server_ip(), configs.get_server_port()))
-        self.server.listen(100)
-
         print("Server Up and Running")
 
+    @staticmethod
+    def open_client_conn(address):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(address)
+        return s
+
     def run(self):
-        while True:
-            conn, addr = self.server.accept()
-            print(f"Connected by {addr}")
+        for request in start_multicast_receiver():
+            conn_req = request.split(":")
+            conn = self.open_client_conn((conn_req[0], int(conn_req[1])))
             # name:lang1,lang2...
             authentication = conn.recv(2048).decode("utf-8")
             if authentication == "DIRECTOR":
-                director = conn
+                self.director = conn
                 start_new_thread(self.handle_director, (conn,))
                 continue
             new_player = Player(
-                conn, 
-                addr, 
-                authentication.split(':')[0], 
+                conn,
+                authentication.split(':')[0],
                 authentication.split(':')[1].split(','))
 
             self.list_of_clients.append(new_player)
             start_new_thread(self.handle_client, (new_player,))
-    
+
     def remove_player(self, player):
         if player in self.list_of_clients:
-            self.list_of_clients.remove(player) 
+            self.list_of_clients.remove(player)
 
     def handle_client(self, player: Player):
         print(f"{player.name} Logged in")
-        
+
         while True:
             try:
                 message = player.conn.recv(2048)
                 if not message:
                     self.remove_player(player)
                     return
-                
+
                 message = message.decode('utf-8')
                 # language:message
-                
+
                 print(f"< {player.name},{message.split(':')[0]} > " +
-                        f"{message.split(':')[1][:-1]}")
-                
+                      f"{message.split(':')[1][:-1]}")
+
                 self.broadcast(player.name, message.split(':')[0], message.split(':')[1][:-1])
             except:
                 continue
@@ -86,17 +87,16 @@ class Server:
                 message = conn.recv(2048)
                 if not message:
                     return
-                
+
                 message = message.decode('utf-8')
                 # character:language:message
-                
+
                 print(f"< DIRECTOR,{message.split(':')[0]},{message.split(':')[1]} > " +
-                        f"{message.split(':')[2][:-1]}")
-                
+                      f"{message.split(':')[2][:-1]}")
+
                 self.broadcast(message.split(':')[0], message.split(':')[1], message.split(':')[2][:-1])
             except:
                 continue
-
 
     def broadcast(self, sender_name, language, message):
         # TODO: Make this more uniform so it works well on player and dm
@@ -111,7 +111,7 @@ class Server:
             except:
                 player.conn.close()
                 to_remove.append(player)
-        
+
         for p in to_remove:
             self.remove_player(p)
 
@@ -135,7 +135,8 @@ class Server:
 
     def randomize_message(message: str):
         return "".join(map(lambda a: ' ' if a == ' ' else '?', message))
-    
+
+
 if __name__ == "__main__":
     server = Server()
     server.run()
