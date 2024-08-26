@@ -28,7 +28,7 @@ def main():
     running = True
     thread = threading.Thread(target=lambda: _read_thread(s, lambda: running))
     thread.start()
-    cli = PlayerCli(lambda message: s.send(bytes(f"{message}", 'utf-8')), prompt=True)
+    cli = PlayerCli(lambda message: s.send(bytes(f"{message}", 'utf-8')))
     cli.start_cli()
     running = False
     thread.join()

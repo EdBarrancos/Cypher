@@ -79,7 +79,7 @@ class Server:
                 print(f"< {player.name},{message.split(':')[0]} > " +
                       f"{message.split(':')[1]}")
 
-                self.broadcast(player.name, message.split(':')[0], message.split(':')[1][:-1])
+                self.broadcast(player.name, message.split(':')[0], message.split(':')[1])
             except:
                 continue
 
@@ -98,7 +98,7 @@ class Server:
                 print(f"< DIRECTOR,{message.split(':')[0]},{message.split(':')[1]} > " +
                       f"{message.split(':')[2][:-1]}")
 
-                self.broadcast(message.split(':')[0], message.split(':')[1], message.split(':')[2][:-1])
+                self.broadcast(message.split(':')[0], message.split(':')[1], message.split(':')[2])
             except:
                 continue
 
