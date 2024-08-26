@@ -43,10 +43,14 @@ class Server:
             conn = self.open_client_conn((conn_req[0], int(conn_req[1])))
             # name:lang1,lang2...
             authentication = conn.recv(2048).decode("utf-8")
+            if authentication == "":
+                continue
+
             if authentication == "DIRECTOR":
                 self.director = conn
                 start_new_thread(self.handle_director, (conn,))
                 continue
+            print(authentication)
             new_player = Player(
                 conn,
                 authentication.split(':')[0],

@@ -3,7 +3,7 @@ from typing import Callable
 
 import inquirer
 
-from src.interactive_cli.cli import Cli
+from interactive_cli.cli import Cli
 
 
 class PlayerCli(Cli):
@@ -25,6 +25,7 @@ class PlayerCli(Cli):
     def _configure_char(self):
         if self.connected:
             print("Don't try to cheat. No changing your character mid-game!")
+            return
 
         questions = [
             inquirer.Text(name='name', message='What\'s your name?'),
@@ -40,6 +41,7 @@ class PlayerCli(Cli):
             return
         if self.connected:
             print("I know this is kinda like magic, but once connected, no need to connect again!")
+            return
 
         self.message_call(f"{self.name}:{functools.reduce(lambda a, b: a + ',' + b, self.languages)}")
         self.connected = True
@@ -59,8 +61,8 @@ class PlayerCli(Cli):
         options = [
             ('Configure Character', 'configure'),
             ('Select Language', 'language'),
-            ('Speak', 'speak'),
-            ('Attempt Server Connection', 'connect')
+            ('Attempt Server Connection', 'connect'),
+            ('Speak', 'speak')
         ]
 
         answer = self.inquirer_prompt(
@@ -100,19 +102,20 @@ class PlayerCli(Cli):
 
         while True:
             message = input('')
-            if message == '':
-                continue
-
-            match message.split(' ')[0]:
-                case "\\connect":
-                    self._connect()
-                case "\\menu":
-                    self._menu()
-                case "\\config":
-                    self._configure_char()
-                case "\\language":
-                    self._select_language()
-                case "exit" | "\\exit" | "quit":
-                    return
-                case _:
-                    self._speak(message)
+            command_check = message.split(' ')[0]
+            if command_check[0] == "\\":
+                match command_check:
+                    case "\\connect":
+                        self._connect()
+                    case "\\menu":
+                        self._menu()
+                    case "\\config":
+                        self._configure_char()
+                    case "\\language":
+                        self._select_language()
+                    case "\\exit":
+                        return
+                    case _:
+                        print("What are you trying to do??")
+            else:
+                self._speak(message)
