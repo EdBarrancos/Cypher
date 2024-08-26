@@ -1,47 +1,37 @@
 import functools
 import select
 import sys
+import threading
+from typing import Callable
 
 from config_handler import Configurations
 from network import open_tcp_conn_through_multicast
+from interactive_cli.player_cli import PlayerCli
 
 
 class ClientConfigurations(Configurations):
     pass
 
 
-name = input("Your character name: ")
-languages = input("Which languages do you speak? (Separate with ,): ") \
-    .replace(" ", "").split(',')
+def _read_thread(socket, callable: Callable[[], bool]):
+    while callable():
+        socket.setblocking(0)
+
+        ready = select.select([socket], [], [], 0.5)
+        if ready[0]:
+            message = socket.recv(2048).decode('utf-8')
+            print(message)
 
 
 def main():
     s = open_tcp_conn_through_multicast()
-    s.send(bytes(
-        f"{name}:{functools.reduce(lambda a, b: a + ',' + b, languages)}",
-        "utf-8"))
-
-    print("lang:message")
-    while True:
-        sockets_list = [sys.stdin, s]
-
-        read_sockets, _, _ = select.select(sockets_list, [], [])
-
-        for sock in read_sockets:
-            if sock == s:
-                message = s.recv(2048).decode('utf-8')
-                print(message)
-            else:
-                try:
-                    message = sys.stdin.readline()
-                    if message == "exit":
-                        s.close()
-                        break
-                    # TODO: Check if player speaks lang
-                    # TODO: Check if formatting is correct
-                    s.send(bytes(f"{message}", 'utf-8'))
-                except:
-                    continue
+    running = True
+    thread = threading.Thread(target=lambda: _read_thread(s, lambda: running))
+    thread.start()
+    cli = PlayerCli(lambda message: s.send(bytes(f"{message}", 'utf-8')), prompt=True)
+    cli.start_cli()
+    running = False
+    thread.join()
 
 
 if __name__ == '__main__':

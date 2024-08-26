@@ -73,7 +73,7 @@ class Server:
                 # language:message
 
                 print(f"< {player.name},{message.split(':')[0]} > " +
-                      f"{message.split(':')[1][:-1]}")
+                      f"{message.split(':')[1]}")
 
                 self.broadcast(player.name, message.split(':')[0], message.split(':')[1][:-1])
             except:
