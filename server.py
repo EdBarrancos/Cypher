@@ -2,11 +2,9 @@ import socket
 from _thread import *
 from dataclasses import dataclass
 
-from config_handler import Configurations
-from network import start_multicast_receiver
+from src.config_handler import Configurations
+from src.network import start_multicast_receiver
 
-
-# TODO: Multicast IP
 # TODO: Ability to narrate
 
 
@@ -96,7 +94,7 @@ class Server:
                 # character:language:message
 
                 print(f"< DIRECTOR,{message.split(':')[0]},{message.split(':')[1]} > " +
-                      f"{message.split(':')[2][:-1]}")
+                      f"{message.split(':')[2]}")
 
                 self.broadcast(message.split(':')[0], message.split(':')[1], message.split(':')[2])
             except:

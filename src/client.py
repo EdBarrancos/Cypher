@@ -2,9 +2,8 @@ import select
 import threading
 from typing import Callable
 
-from config_handler import Configurations
-from interactive_cli.player_cli import PlayerCli
-from network import open_tcp_conn_through_multicast
+from src.config_handler import Configurations
+from src.network import open_tcp_conn_through_multicast
 
 
 class ClientConfigurations(Configurations):
@@ -21,18 +20,17 @@ def _read_thread(socket, call: Callable[[], bool]):
             print(message)
 
 
-def main():
+def start(cli: Callable):
     print("Connecting to server. This might take a while.")
     s = open_tcp_conn_through_multicast()
     print("Initial handshake completed!")
     running = True
     thread = threading.Thread(target=lambda: _read_thread(s, lambda: running))
     thread.start()
-    cli = PlayerCli(lambda message: s.send(bytes(f"{message}", 'utf-8')))
-    cli.start_cli()
+    cli = cli(lambda message: s.send(bytes(f"{message}", 'utf-8')))
+    try:
+        cli.start_cli()
+    except KeyboardInterrupt:
+        print("Exiting")
     running = False
     thread.join()
-
-
-if __name__ == '__main__':
-    main()
