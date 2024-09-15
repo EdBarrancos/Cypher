@@ -21,16 +21,10 @@ class PlayerCli(Cli):
         return True
 
     def _confirm(self):
-        options = [
-            ('Yes', 'yes'),
-            ('No', 'no')
-        ]
-
         answer = self.inquirer_prompt(
-            [inquirer.List('option', message="Are you sure of who you are?", choices=options, carousel=True)]
+            [inquirer.Confirm('option', message="Are you sure of who you are?")]
         )
-
-        return answer['option'] == "yes"
+        return answer['option']
 
     def _configure_char(self):
         print("Let's start by creating you character!\n")
