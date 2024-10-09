@@ -43,20 +43,33 @@ class PlayerCli(Cli):
         self.message_call(f"{self.character.name}:{functools.reduce(lambda a, b: a + ',' + b, self.character.languages)}")
         print("Welcome to the game!\n")
 
+    def _single_speak(self, message: str, language: str = None):
+        if not self.character:
+            print("You need to configure your character first!")
+            return
+        
+        if not language:
+            language = self._query_language()
+
+        self.message_call(f"{self.character.name}:{language}:{message}")
+
+    def _query_language(self):
+        answer = self.inquirer_prompt(
+            [inquirer.List('option', message="What language will you speak?", choices=self.character.languages, carousel=True)]
+        )
+        return answer['option']
+
     def _select_language(self):
         if not self._is_char_configured():
             return
 
-        answer = self.inquirer_prompt(
-            [inquirer.List('option', message="What language will you speak?", choices=self.character.languages, carousel=True)]
-        )
-
-        self.current_language = answer['option']
+        self.current_language = self._query_language()
 
     def _menu(self):
         options = [
             ('Select Language', 'language'),
-            ('Speak', 'speak')
+            ('Speak', 'speak'),
+            ('Speak Single', 'speak_single')
         ]
 
         answer = self.inquirer_prompt(
@@ -69,6 +82,9 @@ class PlayerCli(Cli):
                 self._menu()
             case 'speak':
                 return
+            case 'speak_single':
+                self._single_speak(input("Enter your message: "))
+                self._menu()
             case _:
                 print("I'm confused, you want to do what?\n")
                 self._menu()
@@ -82,10 +98,11 @@ class PlayerCli(Cli):
     @staticmethod
     def _print_help():
         print()
-        print("\\menu       -> go to interactive menu")
-        print("\\language   -> select language")
-        print("\\exit       -> leave game")
-        print("\\help       -> print this :)")
+        print("\\menu                         -> go to interactive menu")
+        print("\\language                     -> select language")
+        print("\\speak_single <language> <message> -> speak single line with specified language")
+        print("\\exit                         -> leave game")
+        print("\\help                         -> print this :)")
 
     def start_cli(self):
 
@@ -103,6 +120,9 @@ class PlayerCli(Cli):
                         self._menu()
                     case "\\language":
                         self._select_language()
+                    case "\\speak_single":
+                        parts = message.split(' ')
+                        self._single_speak(" ".join(parts[2:]), parts[1])
                     case "\\help":
                         self._print_help()
                     case "\\exit":

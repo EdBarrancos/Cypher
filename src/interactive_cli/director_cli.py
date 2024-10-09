@@ -48,34 +48,50 @@ class DirectorCli(Cli):
         self.message_call(f"DIRECTOR")
         print("Welcome to the game!\n")
 
-    def _select_character(self):
+    def _query_character(self):
         if not self.characters:
             print("Configure some character first!")
             return
 
         answer = self.inquirer_prompt(
-            [inquirer.List('option', message="What character will you be?", choices=[char.name for char in self.characters], carousel=True)]
+            [inquirer.List('option', message="What character will you be?", choices=[(char.name, char) for char in self.characters], carousel=True)]
         )
+        return answer['option']
 
-        self.current_character = self.characters[answer['option']]
-        self._select_language()
+    def _select_character(self):
+        if not self.characters:
+            print("Configure some character first!")
+            return
+
+        self.current_character = self._query_character()
+
+    def _query_language(self, character: Character):
+        answer = self.inquirer_prompt(
+            [inquirer.List('option', message="What language will you speak?", choices=character.languages, carousel=True)]
+        )
+        return answer['option']
 
     def _select_language(self):
         if not self.current_character:
             return
 
-        answer = self.inquirer_prompt(
-            [inquirer.List('option', message="What language will you speak?", choices=self.current_character.languages, carousel=True)]
-        )
+        self.current_language = self._query_language(self.current_character)
+        
+    def _single_speak(self, message: str, character: Character = None, language: str = None):
+        if not character:
+            character = self._select_character()    
+        if not language:
+            language = self._select_language()
 
-        self.current_language = answer['option']
+        self.message_call(f"{character.name}:{language}:{message}")
 
     def _menu(self):
         options = [
             ('Configure New Character', 'configure'),
             ('Select Character', 'character'),
             ('Select Language', 'language'),
-            ('Speak', 'speak')
+            ('Speak', 'speak'),
+            ('Speak Single', 'speak_single')
         ]
 
         answer = self.inquirer_prompt(
@@ -94,6 +110,9 @@ class DirectorCli(Cli):
                 self._menu()
             case 'speak':
                 return
+            case 'speak_single':
+                self._single_speak()
+                self._menu()
             case _:
                 print("I'm confused, you want to do what?\n")
                 self._menu()
@@ -107,12 +126,13 @@ class DirectorCli(Cli):
     @staticmethod
     def _print_help():
         print()
-        print("\\menu       -> go to interactive menu")
-        print("\\configure  -> configure new character")
-        print("\\character  -> select character")
-        print("\\language   -> select language")
-        print("\\exit       -> leave game")
-        print("\\help       -> print this :)")
+        print("\\menu                                               -> go to interactive menu")
+        print("\\configure                                          -> configure new character")
+        print("\\character                                          -> select character")
+        print("\\language                                           -> select language")
+        print("\\speak_single <character> <language> <message>      -> speak single line with character and language")
+        print("\\exit                                               -> leave game")
+        print("\\help                                               -> print this :)")
 
     def start_cli(self):
 
@@ -137,6 +157,9 @@ class DirectorCli(Cli):
                         self._select_character()
                     case "\\language":
                         self._select_language()
+                    case "\\speak_single":
+                        parts = message.split(' ')
+                        self._single_speak("".join(parts[3:]), parts[1], parts[2])
                     case "\\help":
                         self._print_help()
                     case "\\exit":
