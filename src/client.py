@@ -1,48 +1,36 @@
-import functools
 import select
-import sys
+import threading
+from typing import Callable
 
-from config_handler import Configurations
-from network import open_tcp_conn_through_multicast
+from src.config_handler import Configurations
+from src.network import open_tcp_conn_through_multicast
 
 
 class ClientConfigurations(Configurations):
     pass
 
 
-name = input("Your character name: ")
-languages = input("Which languages do you speak? (Separate with ,): ") \
-    .replace(" ", "").split(',')
+def _read_thread(socket, call: Callable[[], bool]):
+    while call():
+        socket.setblocking(0)
+
+        ready = select.select([socket], [], [], 0.5)
+        if ready[0]:
+            message = socket.recv(2048).decode('utf-8')
+            print(message)
 
 
-def main():
+def start(cli: Callable):
+    print("Connecting to server. This might take a while.")
     s = open_tcp_conn_through_multicast()
-    s.send(bytes(
-        f"{name}:{functools.reduce(lambda a, b: a + ',' + b, languages)}",
-        "utf-8"))
-
-    print("lang:message")
-    while True:
-        sockets_list = [sys.stdin, s]
-
-        read_sockets, _, _ = select.select(sockets_list, [], [])
-
-        for sock in read_sockets:
-            if sock == s:
-                message = s.recv(2048).decode('utf-8')
-                print(message)
-            else:
-                try:
-                    message = sys.stdin.readline()
-                    if message == "exit":
-                        s.close()
-                        break
-                    # TODO: Check if player speaks lang
-                    # TODO: Check if formatting is correct
-                    s.send(bytes(f"{message}", 'utf-8'))
-                except:
-                    continue
-
-
-if __name__ == '__main__':
-    main()
+    print("Initial handshake completed!")
+    running = True
+    thread = threading.Thread(target=lambda: _read_thread(s, lambda: running))
+    thread.start()
+    cli = cli(lambda message: s.send(bytes(f"{message}", 'utf-8')))
+    try:
+        cli.start_cli()
+    except KeyboardInterrupt:
+        print("Exiting")
+    running = False
+    thread.join()
