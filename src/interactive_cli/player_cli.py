@@ -51,7 +51,7 @@ class PlayerCli(Cli):
         if not language:
             language = self._query_language()
 
-        self.message_call(f"{self.character.name}:{language}:{message}")
+        self.message_call(f"{language}:{message}")
 
     def _query_language(self):
         answer = self.inquirer_prompt(
